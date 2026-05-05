@@ -1,6 +1,6 @@
-using Microsoft.Extensions.Logging;
-using Aspire.Hosting;
 using System.Net.Http.Json;
+using Aspire.Hosting;
+using Microsoft.Extensions.Logging;
 
 namespace AuditFramework.Tests;
 
@@ -25,20 +25,27 @@ public class WebTests
         await using var app = await StartApplicationAsync();
 
         var httpClient = app.CreateHttpClient("apiservice");
-        var response = await httpClient.GetAsync("/weatherforecast", TestContext.Current.CancellationToken);
+        var response = await httpClient.GetAsync(
+            "/weatherforecast",
+            TestContext.Current.CancellationToken
+        );
 
         response.EnsureSuccessStatusCode();
 
         var forecast = await response.Content.ReadFromJsonAsync<WeatherForecastDto[]>(
-            cancellationToken: TestContext.Current.CancellationToken);
+            cancellationToken: TestContext.Current.CancellationToken
+        );
 
         Assert.NotNull(forecast);
         Assert.Equal(5, forecast.Length);
-        Assert.All(forecast, item =>
-        {
-            Assert.NotEqual(default, item.Date);
-            Assert.False(string.IsNullOrWhiteSpace(item.Summary));
-        });
+        Assert.All(
+            forecast,
+            item =>
+            {
+                Assert.NotEqual(default, item.Date);
+                Assert.False(string.IsNullOrWhiteSpace(item.Summary));
+            }
+        );
     }
 
     [Theory]
@@ -58,7 +65,10 @@ public class WebTests
     {
         var cancellationToken = TestContext.Current.CancellationToken;
 
-        var appHost = await DistributedApplicationTestingBuilder.CreateAsync<Projects.AuditFramework_AppHost>(cancellationToken);
+        var appHost =
+            await DistributedApplicationTestingBuilder.CreateAsync<Projects.AuditFramework_AppHost>(
+                cancellationToken
+            );
         appHost.Services.AddLogging(logging =>
         {
             logging.SetMinimumLevel(LogLevel.Debug);
@@ -70,16 +80,25 @@ public class WebTests
             clientBuilder.AddStandardResilienceHandler();
         });
 
-        var app = await appHost.BuildAsync(cancellationToken).WaitAsync(DefaultTimeout, cancellationToken);
+        var app = await appHost
+            .BuildAsync(cancellationToken)
+            .WaitAsync(DefaultTimeout, cancellationToken);
         await app.StartAsync(cancellationToken).WaitAsync(DefaultTimeout, cancellationToken);
 
-        await app.ResourceNotifications.WaitForResourceHealthyAsync("apiservice", cancellationToken)
+        await app
+            .ResourceNotifications.WaitForResourceHealthyAsync("apiservice", cancellationToken)
             .WaitAsync(DefaultTimeout, cancellationToken);
-        await app.ResourceNotifications.WaitForResourceHealthyAsync("webfrontend", cancellationToken)
+        await app
+            .ResourceNotifications.WaitForResourceHealthyAsync("webfrontend", cancellationToken)
             .WaitAsync(DefaultTimeout, cancellationToken);
 
         return app;
     }
 
-    private sealed record WeatherForecastDto(DateOnly Date, int TemperatureC, int TemperatureF, string? Summary);
+    private sealed record WeatherForecastDto(
+        DateOnly Date,
+        int TemperatureC,
+        int TemperatureF,
+        string? Summary
+    );
 }
